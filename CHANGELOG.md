@@ -1,5 +1,9 @@
 # Changelog
 
+## v10.0.0 (2024-03-13)
+
+- Added optional context support 
+
 ## v9.1.1 (2024-03-08)
 
 - Fix TranslateService not resolved when injected with readonly keyword ([#39](https://github.com/vendure-ecommerce/ngx-translate-extract/pull/39))

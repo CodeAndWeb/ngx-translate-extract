@@ -17,9 +17,9 @@ Unfortunately he was unable to continue to maintain it so the Vendure team [agre
 Install the package in your project:
 
 ```bash
-npm install @vendure/ngx-translate-extract --save-dev
+npm install @vandres/ngx-translate-extract --save-dev
 # or
-yarn add @vendure/ngx-translate-extract --dev
+yarn add @vandres/ngx-translate-extract --dev
 ```
 
 Choose the version corresponding to your Angular version:
@@ -151,3 +151,4 @@ For instance, `gettext-parser:1.2.2` does not support HTML tags in translation k
 -   Further updates and improvements by [P4](https://github.com/P4) ❤️
 -   Further updates and improvements by [colsen1991](https://github.com/colsen1991) ❤️
 -   Further updates and improvements by [tmijieux](https://github.com/tmijieux) ❤️
+-   Further updates and improvements by [vendure-ecommerce](https://github.com/vendure-ecommerce/ngx-translate-extract) ❤️

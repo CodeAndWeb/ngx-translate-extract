@@ -1,6 +1,6 @@
 {
-  "name": "@vendure/ngx-translate-extract",
-  "version": "9.1.1",
+  "name": "@vandres/ngx-translate-extract",
+  "version": "10.0.0",
   "description": "Extract strings from projects using ngx-translate",
   "author": "Kim Biesbjerg <kim@biesbjerg.com>",
   "license": "MIT",
