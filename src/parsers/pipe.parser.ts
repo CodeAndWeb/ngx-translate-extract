@@ -1,26 +1,26 @@
 import {
 	AST,
-	TmplAstNode,
-	parseTemplate,
-	BindingPipe,
-	LiteralPrimitive,
-	Conditional,
-	TmplAstTextAttribute,
 	Binary,
-	LiteralMap,
-	LiteralArray,
-	Interpolation,
+	BindingPipe,
 	Call,
-	TmplAstIfBlock,
-	TmplAstSwitchBlock,
+	Conditional,
+	Interpolation,
+	LiteralArray,
+	LiteralMap,
+	LiteralPrimitive,
+	parseTemplate,
 	TmplAstDeferredBlock,
+	TmplAstElement,
 	TmplAstForLoopBlock,
-	TmplAstElement
+	TmplAstIfBlock,
+	TmplAstNode,
+	TmplAstSwitchBlock,
+	TmplAstTextAttribute
 } from '@angular/compiler';
 
 import { ParserInterface } from './parser.interface.js';
 import { TranslationCollection } from '../utils/translation.collection.js';
-import { isPathAngularComponent, extractComponentInlineTemplate } from '../utils/utils.js';
+import { extractComponentInlineTemplate, isPathAngularComponent } from '../utils/utils.js';
 
 export const TRANSLATE_PIPE_NAMES = ['translate', 'marker'];
 
@@ -89,7 +89,24 @@ export class PipeParser implements ParserInterface {
 
 		pipes.forEach((pipe) => {
 			this.parseTranslationKeysFromPipe(pipe).forEach((key: string) => {
-				collection = collection.add(key, '', filePath);
+				let context: string | undefined;
+				if (pipe.args?.length) {
+					for (const value of pipe.args.values()) {
+						if (!(value instanceof LiteralMap)) {
+							continue;
+						}
+
+						value.keys.forEach((argumentKey: { key: string, quoted: boolean }, index: number) => {
+							if (argumentKey.key !== '_context') {
+								return;
+							}
+
+							context = value.values.at(index).value;
+						});
+					}
+				}
+
+				collection = collection.add(key, '', filePath, context);
 			});
 		});
 		return collection;

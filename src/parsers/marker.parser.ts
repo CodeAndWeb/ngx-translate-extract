@@ -20,12 +20,16 @@ export class MarkerParser implements ParserInterface {
 
 		const callExpressions = findFunctionCallExpressions(sourceFile, markerImportName);
 		callExpressions.forEach((callExpression) => {
-			const [firstArg] = callExpression.arguments;
+			const [firstArg, secondArg] = callExpression.arguments;
 			if (!firstArg) {
 				return;
 			}
 			const strings = getStringsFromExpression(firstArg);
-			collection = collection.addKeys(strings, filePath);
+			let secondArgStrings: string;
+			if (secondArg) {
+				secondArgStrings = getStringsFromExpression(secondArg).at(0);
+			}
+			collection = collection.addKeys(strings, filePath, secondArgStrings);
 		});
 		return collection;
 	}

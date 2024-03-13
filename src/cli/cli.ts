@@ -62,12 +62,24 @@ const cli = await y
 		describe: 'Format',
 		default: 'json',
 		type: 'string',
-		choices: ['json', 'namespaced-json', 'pot']
+		choices: ['json', 'namespaced-json', 'pot', 'context-json']
 	})
 	.option('format-indentation', {
 		alias: 'fi',
 		describe: 'Format indentation (JSON/Namedspaced JSON)',
 		default: '\t',
+		type: 'string'
+	})
+	.option('format-context-key', {
+		alias: 'fck',
+		describe: 'Key for format context (Context JSON)',
+		default: 'context',
+		type: 'string'
+	})
+	.option('format-value-key', {
+		alias: 'fvk',
+		describe: 'Key for value (Context JSON)',
+		default: 'value',
 		type: 'string'
 	})
 	.option('replace', {
@@ -118,7 +130,7 @@ const cli = await y
 		describe: 'Strip a prefix from the extracted key',
 		type: 'string'
 	})
-	.group(['format', 'format-indentation', 'sort', 'clean', 'replace', 'strip-prefix'], 'Output')
+	.group(['format', 'format-indentation', 'format-context-key', 'format-value-key', 'sort', 'clean', 'replace', 'strip-prefix'], 'Output')
 	.group(['key-as-default-value', 'null-as-default-value', 'string-as-default-value'], 'Extracted key value (defaults to empty string)')
 	.conflicts('key-as-default-value', 'null-as-default-value')
 	.example('$0 -i ./src-a/ -i ./src-b/ -o strings.json', 'Extract (ts, html) from multiple paths')
@@ -173,7 +185,9 @@ extractTask.setPostProcessors(postProcessors);
 
 // Compiler
 const compiler: CompilerInterface = CompilerFactory.create(cli.format, {
-	indentation: cli.formatIndentation
+	indentation: cli.formatIndentation,
+	contextKey: cli.formatContextKey,
+	valueKey: cli.formatValueKey
 });
 extractTask.setCompiler(compiler);
 

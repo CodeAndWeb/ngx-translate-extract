@@ -8,18 +8,18 @@ import {
 	LiteralArray,
 	LiteralMap,
 	LiteralPrimitive,
+	ParseSourceSpan,
 	parseTemplate,
 	TmplAstBoundAttribute as BoundAttribute,
+	TmplAstDeferredBlock,
 	TmplAstElement as Element,
+	TmplAstForLoopBlock,
+	TmplAstIfBlock,
 	TmplAstNode as Node,
+	TmplAstSwitchBlock,
 	TmplAstTemplate as Template,
 	TmplAstText as Text,
-	TmplAstTextAttribute as TextAttribute,
-	ParseSourceSpan,
-	TmplAstIfBlock,
-	TmplAstSwitchBlock,
-	TmplAstForLoopBlock,
-	TmplAstDeferredBlock
+	TmplAstTextAttribute as TextAttribute
 } from '@angular/compiler';
 
 import { ParserInterface } from './parser.interface.js';
@@ -32,10 +32,12 @@ interface BlockNode {
 	startSourceSpan: ParseSourceSpan;
 	endSourceSpan: ParseSourceSpan | null;
 	children: Node[] | undefined;
+
 	visit<Result>(visitor: unknown): Result;
 }
 
 export const TRANSLATE_ATTR_NAMES = ['translate', 'marker'];
+export const TRANSLATE_ATTR_PARAM_NAMES = ['translateParams'];
 type ElementLike = Element | Template;
 
 export class DirectiveParser implements ParserInterface {
@@ -50,22 +52,33 @@ export class DirectiveParser implements ParserInterface {
 
 		elements.forEach((element) => {
 			const attribute = this.getAttribute(element, TRANSLATE_ATTR_NAMES);
+			const params = this.getBoundAttribute(element, TRANSLATE_ATTR_PARAM_NAMES);
+			let context: string | undefined;
+			if (params?.value) {
+				const paramsKeyValue = this.getLiteralKeyValues(params.value);
+				// eslint-disable-next-line no-underscore-dangle
+				if (paramsKeyValue?._context) {
+					// eslint-disable-next-line no-underscore-dangle
+					context = paramsKeyValue?._context;
+				}
+			}
+
 			if (attribute?.value) {
-				collection = collection.add(attribute.value, '', filePath);
+				collection = collection.add(attribute.value, '', filePath, context);
 				return;
 			}
 
 			const boundAttribute = this.getBoundAttribute(element, TRANSLATE_ATTR_NAMES);
 			if (boundAttribute?.value) {
 				this.getLiteralPrimitives(boundAttribute.value).forEach((literalPrimitive) => {
-					collection = collection.add(literalPrimitive.value, '', filePath);
+					collection = collection.add(literalPrimitive.value, '', filePath, context);
 				});
 				return;
 			}
 
 			const textNodes = this.getTextNodes(element);
 			textNodes.forEach((textNode) => {
-				collection = collection.add(textNode.value.trim(), '', filePath);
+				collection = collection.add(textNode.value.trim(), '', filePath, context);
 			});
 		});
 		return collection;
@@ -199,6 +212,37 @@ export class DirectiveParser implements ParserInterface {
 		let results: LiteralPrimitive[] = [];
 		visit.forEach((child) => {
 			results = [...results, ...this.getLiteralPrimitives(child)];
+		});
+		return results;
+	}
+
+	/**
+	 * Get literal primitives from expression
+	 * @param exp
+	 */
+	protected getLiteralKeyValues(exp: AST): Record<string, any> {
+		let visit: AST[] = [];
+		if (exp instanceof Interpolation) {
+			visit = exp.expressions;
+		} else if (exp instanceof LiteralArray) {
+			visit = exp.expressions;
+		} else if (exp instanceof LiteralMap) {
+			visit = exp.values;
+		} else if (exp instanceof BindingPipe) {
+			visit = [exp.exp];
+		} else if (exp instanceof Conditional) {
+			visit = [exp.trueExp, exp.falseExp];
+		} else if (exp instanceof Binary) {
+			visit = [exp.left, exp.right];
+		} else if (exp instanceof ASTWithSource) {
+			visit = [exp.ast];
+		}
+
+		const results: Record<string, LiteralPrimitive> = {};
+		visit.forEach((child: AST, index: number) => {
+			const keys: { key: string; quoted: boolean }[] = (child as any)?.keys;
+			const key = keys.at(index);
+			results[key.key] = this.getLiteralPrimitives(child).at(0).value;
 		});
 		return results;
 	}

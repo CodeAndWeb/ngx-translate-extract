@@ -1,16 +1,7 @@
 import { tsquery } from '@phenomnomnominal/tsquery';
-import pkg, {
-	Node,
-	NamedImports,
-	Identifier,
-	ClassDeclaration,
-	ConstructorDeclaration,
-	CallExpression,
-	Expression,
-	PropertyAccessExpression,
-	StringLiteral
-} from 'typescript';
-const { SyntaxKind, isStringLiteralLike, isArrayLiteralExpression, isBinaryExpression, isConditionalExpression } = pkg;
+import pkg, { CallExpression, ClassDeclaration, ConstructorDeclaration, Expression, Identifier, NamedImports, Node, PropertyAccessExpression, StringLiteral } from 'typescript';
+
+const { SyntaxKind, isStringLiteralLike, isArrayLiteralExpression, isBinaryExpression, isConditionalExpression, isObjectLiteralExpression } = pkg;
 
 export function getNamedImports(node: Node, moduleName: string): NamedImports[] {
 	const query = `ImportDeclaration[moduleSpecifier.text=/${moduleName}/] NamedImports`;
@@ -131,8 +122,8 @@ export function findPropertyCallExpressions(node: Node, prop: string, fnName: st
 		fnName = fnName.join('|');
 	}
 	const query = 'CallExpression > ' +
-        `PropertyAccessExpression:has(Identifier[name=/^(${fnName})$/]):has(PropertyAccessExpression:has(Identifier[name="${prop}"]):has(ThisKeyword)) > ` +
-        `PropertyAccessExpression:has(ThisKeyword) > Identifier[name="${prop}"]`;
+		`PropertyAccessExpression:has(Identifier[name=/^(${fnName})$/]):has(PropertyAccessExpression:has(Identifier[name="${prop}"]):has(ThisKeyword)) > ` +
+		`PropertyAccessExpression:has(ThisKeyword) > Identifier[name="${prop}"]`;
 	const nodes = tsquery<Identifier>(node, query);
 	// Since the direct descendant operator (>) is not supported in :has statements, we need to
 	// check manually whether everything is correctly matched
@@ -146,6 +137,22 @@ export function findPropertyCallExpressions(node: Node, prop: string, fnName: st
 		return result;
 	}, []);
 	return filtered;
+}
+
+export function getObjectFromExpression(expression: Expression): Record<string, string> | null {
+	if (!isObjectLiteralExpression(expression)) {
+		return null;
+	}
+
+	const jsObject: Record<string, string> = {};
+	for (const property of expression.properties) {
+		// `substring()` to remove quotes "'String'"
+		// TODO find a better way
+		const value = property.getLastToken().getText();
+		jsObject[property.name.getText()] = value.substring(1, value.length - 1);
+
+	}
+	return jsObject;
 }
 
 export function getStringsFromExpression(expression: Expression): string[] {

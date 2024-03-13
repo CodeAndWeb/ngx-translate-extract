@@ -17,7 +17,7 @@ import {
 	findMethodParameterByType,
 	findConstructorDeclaration,
 	getSuperClassName,
-	getImportPath
+	getImportPath, getObjectFromExpression
 } from '../utils/ast-helpers.js';
 
 const TRANSLATE_SERVICE_TYPE_REFERENCE = 'TranslateService';
@@ -43,12 +43,21 @@ export class ServiceParser implements ParserInterface {
 			];
 
 			callExpressions.forEach((callExpression) => {
-				const [firstArg] = callExpression.arguments;
+				const [firstArg, secondArg] = callExpression.arguments;
 				if (!firstArg) {
 					return;
 				}
 				const strings = getStringsFromExpression(firstArg);
-				collection = collection.addKeys(strings, filePath);
+				let secondArgStrings: string;
+				if (secondArg) {
+					const jsObject = getObjectFromExpression(secondArg);
+					// eslint-disable-next-line no-underscore-dangle
+					if (jsObject?._context) {
+						// eslint-disable-next-line no-underscore-dangle
+						secondArgStrings = jsObject._context;
+					}
+				}
+				collection = collection.addKeys(strings, filePath, secondArgStrings);
 			});
 		});
 		return collection;

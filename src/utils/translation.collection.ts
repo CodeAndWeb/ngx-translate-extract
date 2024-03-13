@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export interface TranslationType {
 	[key: string]: TranslationInterface;
 }
@@ -5,6 +7,7 @@ export interface TranslationType {
 export interface TranslationInterface {
 	value: string;
 	sourceFiles: string[];
+	context?: string;
 }
 
 export class TranslationCollection {
@@ -14,24 +17,24 @@ export class TranslationCollection {
 		this.values = values;
 	}
 
-	public add(key: string, val: string, sourceFile: string): TranslationCollection {
+	public add(key: string, val: string, sourceFile: string, context?: string): TranslationCollection {
 		const translation = this.values[key]
-			? {...this.values[key]}
-			: {value: val, sourceFiles: []};
+			? { ...this.values[key] }
+			: { value: val, sourceFiles: [], context };
 		translation.sourceFiles.push(sourceFile);
 
-		return new TranslationCollection({...this.values, [key]: translation});
+		return new TranslationCollection({ ...this.values, [key]: translation });
 	}
 
-	public addKeys(keys: string[], sourceFile: string): TranslationCollection {
+	public addKeys(keys: string[], sourceFile: string, context?: string): TranslationCollection {
 		const values = keys.reduce(
 			(results, key) => ({
 				...results,
-				[key]: <TranslationInterface>{value: '', sourceFiles: [sourceFile]}
+				[key]: <TranslationInterface>{ value: '', sourceFiles: [sourceFile], context }
 			}),
 			{} as TranslationType
 		);
-		return new TranslationCollection({...this.values, ...values});
+		return new TranslationCollection({ ...this.values, ...values });
 	}
 
 	public remove(key: string): TranslationCollection {
@@ -62,7 +65,15 @@ export class TranslationCollection {
 	}
 
 	public union(collection: TranslationCollection): TranslationCollection {
-		return new TranslationCollection({ ...this.values, ...collection.values });
+		return new TranslationCollection(_.mergeWith(this.values, collection.values, (dest, src) => {
+			if (dest?.context && src?.context) {
+				return _.mergeWith(dest, src, (innerDest, innerSrc, key) => {
+					if (key === 'context') {
+						return innerDest;
+					}
+				});
+			}
+		}));
 	}
 
 	public intersect(collection: TranslationCollection): TranslationCollection {
@@ -105,9 +116,18 @@ export class TranslationCollection {
 		return new TranslationCollection(values);
 	}
 
-	public toKeyValueObject(): {[key: string]: string} {
-		const jsonTranslations: {[key: string]: string} = {};
+	public toKeyValueObject(): { [key: string]: string } {
+		const jsonTranslations: { [key: string]: string } = {};
 		Object.entries(this.values).map(([key, value]: [string, TranslationInterface]) => jsonTranslations[key] = value.value);
+		return jsonTranslations;
+	}
+
+	public toKeyTranslationObject(): { [key: string]: { value: string; context?: string } } {
+		const jsonTranslations: { [key: string]: { value: string; context?: string } } = {};
+		Object.entries(this.values).map(([key, value]: [string, TranslationInterface]) => jsonTranslations[key] = {
+			value: value.value,
+			context: value.context
+		});
 		return jsonTranslations;
 	}
 
